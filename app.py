@@ -1,14 +1,23 @@
 import streamlit as st
+from reconstruct import reconstruct
 from utils import run_ghidra
 
 st.set_page_config(
-    page_title="LLM Decompiler",
+    page_title="Ghidra Mind",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
+if 'code' not in st.session_state:
+    st.session_state.code = None
+if 'reconstructed_code' not in st.session_state:
+    st.session_state.reconstructed_code = None
+
 st.title("🧠 Ghidra Mind ")
-st.write("A reverse engineering tool to decompile and reconstruct readable C source code. Powered by Ghidra + GPT-5.")
+st.markdown("""
+A reverse engineering tool that decompiles and reconstructs binaries into **readable C source code**.  
+Built on **Ghidra** and enhanced by **GPT-5**, it transforms binaries into human-intuitive code — all within a simple, interactive interface.
+""")
 
 # --- File Upload Section ---
 st.sidebar.header("Upload Binary")
@@ -32,7 +41,7 @@ col1, col2 = st.sidebar.columns(2)
 with col1:
     decompile_btn = st.button("Decompile", use_container_width=True, disabled=uploaded_file is None)
 with col2:
-    reconstruct_btn = st.button("Reconstruct", use_container_width=True, disabled=uploaded_file is None)
+    reconstruct_btn = st.button("Reconstruct", use_container_width=True, disabled=uploaded_file is None or st.session_state.code is None)
 
 
 # --- Placeholder: Generation Statistics Table ---
@@ -45,22 +54,16 @@ with col2:
 # st.table(stats_df)
 
 # --- Code Output Section ---
+if uploaded_file and decompile_btn:
+    st.session_state.code = run_ghidra(uploaded_file)
+    st.session_state.reconstructed_code = None
+
+if st.session_state.code and reconstruct_btn:
+    st.session_state.reconstructed_code = reconstruct(st.session_state.code)
+
 tab1, tab2 = st.tabs(["🧱 Original Decompiled", "🧠 Reconstructed (LLM)"])
 with tab1:
-    st.code("// Decompiled output will appear here...", language="c")
-
+    st.code(st.session_state.code, language="c")
 with tab2:
-    st.code("// AI-reconstructed code will appear here...", language="c")
+    st.code(st.session_state.reconstructed_code, language="c")
 
-
-
-
-if decompile_btn and uploaded_file:
-    code = run_ghidra(uploaded_file)
-    st.code(code)
-    # source = decompile()
-
-if reconstruct_btn:
-    st.info("Running LLM reconstruction with selected options...")
-    # TODO: integrate LLM reconstruction logic here
-    # Use checkboxes to adjust prompt or parameters
